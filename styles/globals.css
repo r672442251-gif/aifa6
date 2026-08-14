@@ -1,0 +1,168 @@
+@import "tailwindcss";
+@import "../node_modules/tw-animate-css/dist/tw-animate.css";
+@import "../node_modules/shadcn/dist/tailwind.css";
+
+/* 🔒 ИСХОДНИКИ НАЗВАНЫ ЯВНО, И ЭТО НЕ ПЕДАНТИЗМ — ЭТО ПОЧИНЕННЫЙ САЙТ.
+ *
+ * Tailwind 4 умеет искать классы сам, но границей поиска берёт КОРЕНЬ
+ * GIT-РЕПОЗИТОРИЯ. Нет папки `.git` — искать негде, и сборка проходит успешно,
+ * выдавая CSS без единой утилиты: 9 КБ вместо 120 КБ. Страница становится белой
+ * с чёрным текстом в кучу, а сборка при этом рапортует об успехе.
+ *
+ * Так и случилось 2026-08-12: слот пересобирали в соседней папке, из которой
+ * `.git` был удалён, и сайт потерял оформление целиком. Ни один сторож этого не
+ * поймал — ни типы, ни сборка, ни словари: CSS был валиден, просто пуст.
+ *
+ * Явные `@source` убирают зависимость от git вовсе. Пути — от этого файла. */
+@source "../app";
+@source "../components";
+@source "../lib";
+@source "../config";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── APP CONTENT WIDTH (public showcase :3000) ──────────────────────────────
+   ONE variable drives the max-width of the main content column AND the footer
+   content. The footer width toggle (app-width-toggle.client.tsx) sets
+   html[data-app-width="wide"]; every container marked [data-app-column] reads
+   var(--app-w), so the page cards AND the footer widen together. Ported from the
+   Projects zone (:3003) width toggle.
+     • normal — centered 64rem (the max-w-5xl the showcase shipped with);
+     • wide   — full screen width minus a 32px bridge each side; --app-sbw is the
+                JS-measured scrollbar width (app-width-init.tsx) so 100vw never
+                causes a horizontal scroll;
+     • mobile (<768px) — full width, one column, toggle hidden. */
+:root { --app-w: 64rem; }
+html[data-app-width="wide"] { --app-w: calc(100vw - 64px - var(--app-sbw, 0px)); }
+[data-app-column] { width: 100%; max-width: var(--app-w); margin-left: auto; margin-right: auto; }
+@media (max-width: 767px) {
+  :root, html[data-app-width="wide"] { --app-w: 100%; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * ЛЕЙБЛ-ПИЛЮЛЯ С РАДУЖНОЙ КАЁМКОЙ (владелец 2026-08-13).
+ *
+ * Стоит над заголовком главной и говорит, на чём построен проект. Форма взята с
+ * витрин, где такой знак принято ставить над первым экраном, но реализация
+ * СВОЯ и на порядок дешевле оригинала: там пилюля собрана из вложенных `svg`,
+ * фильтров размытия, масок и `foreignObject` с конической заливкой — десятки
+ * узлов и постоянная перерисовка.
+ *
+ * Здесь всё делает ОДИН элемент и две псевдо-строки:
+ *   • каёмка — коническая заливка, показанная через `mask` только по контуру;
+ *   • свечение — та же заливка, размытая и приглушённая.
+ * Ни одного скрипта, ни одного лишнего узла в разметке.
+ *
+ * 🔒 ДВИЖЕНИЕ — ТОЛЬКО ТЕМ, КТО ЕГО НЕ ЗАПРЕЩАЛ. Вращение включается через
+ * `@property`, и там, где его нет, каёмка просто стоит неподвижно — вид тот же,
+ * анимации нет. При `prefers-reduced-motion: reduce` вращение выключается: у
+ * части людей движение вызывает тошноту и головную боль, и «красиво» этого не
+ * стоит.
+ */
+@property --pill-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.pill-ai {
+  position: relative;
+  isolation: isolate;
+}
+
+/* Каёмка. Заливка обрезается маской так, что видна только полоса шириной 1px по
+ * периметру — рамка есть, а фон под текстом остаётся фоном страницы. */
+.pill-ai::before,
+.pill-ai::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  padding: 1px;
+  background: conic-gradient(
+    from var(--pill-angle),
+    oklch(0.62 0.19 250),
+    oklch(0.68 0.24 330),
+    oklch(0.72 0.19 60),
+    oklch(0.68 0.16 285),
+    oklch(0.62 0.19 250)
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: pill-spin 8s linear infinite;
+}
+
+/* Второй слой — то же самое, но размытое: мягкое свечение под каёмкой. */
+.pill-ai::after {
+  padding: 0;
+  filter: blur(7px);
+  opacity: 0.35;
+  z-index: -1;
+  -webkit-mask: none;
+  mask: none;
+}
+
+@keyframes pill-spin {
+  to { --pill-angle: 360deg; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pill-ai::before,
+  .pill-ai::after { animation: none; }
+}

@@ -1,0 +1,15 @@
+{
+  "languages": [
+    "en",
+    "es",
+    "fr",
+    "it",
+    "ru",
+    "de",
+    "pt",
+    "pl",
+    "tr",
+    "nl"
+  ],
+  "defaultLanguage": "en"
+}

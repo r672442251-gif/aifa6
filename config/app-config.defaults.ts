@@ -10,6 +10,12 @@
 
 export type ImageFormat = "png" | "jpg" | "jpeg" | "webp" | "avif" | "svg" | "gif";
 
+// 🪦 `chatbot-dark` / `chatbot-light` УДАЛЕНЫ 2026-08-15. Это были слоты картинок
+// для чата Hermes, снесённого задачей 3 шага 500. Панель управления вынесла тот же
+// вердикт раньше (`bridges/app/.../app-settings/_lib/fields.ts` — `REMOVED_FIELDS`
+// + `dropRemovedFields` вычищает их из JSON при каждом сохранении), а шаблон слота
+// продолжал их объявлять: тип обещал два слота, которых панель уже не предлагает и
+// которые никто никогда не читал. Не воскрешать.
 export type RegularImageType =
   | "ogImage"
   | "loading-dark"
@@ -19,9 +25,7 @@ export type RegularImageType =
   | "error500-dark"
   | "error500-light"
   | "homePage-dark"
-  | "homePage-light"
-  | "chatbot-dark"
-  | "chatbot-light";
+  | "homePage-light";
 
 export type AllImageTypes = RegularImageType | "logo";
 
@@ -46,12 +50,6 @@ export interface SocialConfig {
 
 export type ContentType = "website" | "article" | "blog" | "product" | "documentation";
 export type OpenGraphTypeConfig = ContentType | "profile" | "video.other";
-
-export interface ContentTypeDefaults {
-  blog: ContentType;
-  product: ContentType;
-  documentation: ContentType;
-}
 
 // A generated PWA/favicon icon set — produced by the Data service POST /media/generate-icons
 // from one square logo. `files` maps logical names (favicon_ico, icon_192, ...) to the
@@ -143,12 +141,20 @@ export interface AppConfig {
   // Варшаве и магазин в Далласе ставят здесь разное, поэтому значение живёт в
   // настройках, а не в коде.
   commerce: { currency: string };
-  contentTypeDefaults: ContentTypeDefaults;
-  // Menu shell (step 160). DEPRECATED (step 161): authButton no longer drives the header —
-  // public auth is now the build-time key NEXT_PUBLIC_APP_SHELL_AUTH (null|left|right), read by
-  // components/menu/account/. Field kept for on-disk app-config.json back-compat; it is a no-op.
-  menus: { authButton: boolean };
 }
+
+// 🪦 УДАЛЕНЫ 2026-08-15 — два поля, которые объявлялись и не читались никем:
+//
+//   `contentTypeDefaults` — сопоставление blog/product/documentation с типом
+//   OpenGraph. Потребителей ноль в шаблоне и поля нет в панели: значение нельзя
+//   было ни задать, ни применить.
+//
+//   `menus: { authButton }` — устарело ещё шагом 161, публичный вход задаётся
+//   сборочным ключом NEXT_PUBLIC_APP_SHELL_AUTH. Поле держали «ради совместимости
+//   файла на диске», и оно обросло собственным обслуживанием: `app-config.agent-view.ts`
+//   отдельной строкой ПРЯТАЛ его от агента. Дешевле удалить поле, чем кормить код,
+//   который его скрывает. Лишний ключ в чужом app-config.json безвреден — читатель
+//   сливает сохранённое поверх этих значений и незнакомые ключи игнорирует.
 
 export const DEFAULT_APP_CONFIG: AppConfig = {
   // These defaults ship with the starter and are what a fresh server serves until
@@ -170,18 +176,30 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
   mailSupport: "admin@fractera.ai",
   lang: "en",
 
+  // 🔒 СТРАНИЦЫ-ЗАГЛУШКИ ИМЕЮТ КАРТИНКУ СРАЗУ (заказ владельца 2026-08-15).
+  //
+  // Раньше здесь стояли одни `null`, и это было половиной механизма: панель
+  // предлагала загрузить восемь картинок, а приложение не читало ни одной.
+  // Единственная живая картинка — знак на странице 404 — была вписана прямо в
+  // компонент путём `/404-logo.png`, то есть мимо настроек: владелец мог
+  // загрузить свой знак и не увидеть его нигде.
+  //
+  // Файлы рождает `npm run images:placeholders` (знак в двух тонах) и лежит в git
+  // (иллюстрация главной). Загрузил владелец своё — панель пишет сюда URL из
+  // хранилища, и он перекрывает эти пути БЕЗ пересборки.
+  //
+  // `ogImage` намеренно остаётся пустым: это картинка для чужой ленты, и знак
+  // Fractera в анонсе ЧУЖОГО сайта — не заглушка, а подпись не того автора.
   images: {
     ogImage: null,
-    "loading-dark": null,
-    "loading-light": null,
-    "notFound-dark": null,
-    "notFound-light": null,
-    "error500-dark": null,
-    "error500-light": null,
-    "homePage-dark": null,
-    "homePage-light": null,
-    "chatbot-dark": null,
-    "chatbot-light": null,
+    "loading-dark": "/placeholders/logo-dark.png",
+    "loading-light": "/placeholders/logo-light.png",
+    "notFound-dark": "/placeholders/logo-dark.png",
+    "notFound-light": "/placeholders/logo-light.png",
+    "error500-dark": "/placeholders/logo-dark.png",
+    "error500-light": "/placeholders/logo-light.png",
+    "homePage-dark": "/placeholders/home.jpg",
+    "homePage-light": "/placeholders/home.jpg",
   },
   logo: null,
 
@@ -240,8 +258,6 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
   jsonLd: { website: true, organization: true, localBusiness: false },
   geo: {},
   commerce: { currency: "USD" },
-  contentTypeDefaults: { blog: "blog", product: "product", documentation: "documentation" },
-  menus: { authButton: false },
 };
 
 // ---- pure getters (take a config object; safe on client or server) ------------------

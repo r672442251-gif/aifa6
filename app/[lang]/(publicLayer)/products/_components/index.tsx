@@ -1,7 +1,6 @@
 import type { Metadata } from "next"
 import { MediaImage } from "@/components/media/media-image.server"
 import Link from "next/link"
-import { Breadcrumbs } from "@/components/nav/breadcrumbs.server"
 import { buildAlternates } from "@/lib/seo/alternates"
 import { constructMetadata } from "@/lib/construct-metadata"
 import { getAppConfig } from "@/config/app-config"
@@ -12,6 +11,7 @@ import { catalogueUi } from "../_data"
 import { LoadMore } from "./load-more.client"
 import { H1 } from '@/components/ui/typography'
 import { PageHeader } from "@/components/content-page/page-header.server"
+import { EmptyState } from "@/components/ui/empty-state"
 
 // ПУБЛИЧНАЯ ВИТРИНА КАТАЛОГА — одна страница, без пагинации (владелец
 // 2026-08-11).
@@ -77,9 +77,7 @@ export default async function Catalogue({ lang }: { lang: string }) {
         <PageHeader lang={lang} breadcrumbs={[{ label: t.title }]} title={t.title} subtitle={t.subtitle} />
 
         {products.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-border px-4 py-12 text-center text-sm text-muted-foreground">
-            {t.empty}
-          </p>
+          <EmptyState title={t.empty} />
         ) : (
           <>
             {/* Сетка — серверная разметка. Каждая карточка это ССЫЛКА: её видит
